@@ -1,0 +1,24 @@
+﻿@model ByteBank.Forum.ViewModels.ContaConfirmaAlteracaoSenhaViewModel
+@{
+    ViewBag.Title = "ConfirmacaoAlteracaoSenha";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Confirmação de alteração de senha</h2>
+
+@using (Html.BeginForm("ConfirmacaoAlteracaoSenha", "Conta"))
+{
+    <h4>Informe a nova senha para acesso ao Fórum.</h4>
+    <hr />
+
+    @Html.ValidationSummary("", new { @class = "text-danger" })
+    @Html.EditorForModel()
+
+    <div class="clearfix"><br /></div>
+    <div class="form-group">
+        <div class="col-md-2" style="padding-left: 0px;">
+            <input type="submit" value="Alterar Senha" class="btn btn-success" />
+        </div>
+    </div>
+    <div class="clearfix"></div>
+}
