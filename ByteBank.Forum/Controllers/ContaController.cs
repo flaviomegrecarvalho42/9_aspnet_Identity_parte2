@@ -89,7 +89,7 @@ namespace ByteBank.Forum.Controllers
                 }
 
                 // Enviar o email de confirmação
-                await EnviarEmailDeConfirmacaoAsync(novoUsuario);
+                await EnviarEmailDeConfirmacaoOuAlteracaoSenhaAsync(novoUsuario, false);
                 return View("AguardandoConfirmacao");
             }
 
@@ -111,22 +111,6 @@ namespace ByteBank.Forum.Controllers
             }
 
             return View("EmailConfirmado");
-        }
-
-        private async Task EnviarEmailDeConfirmacaoAsync(UsuarioAplicacao usuarioAplicacaoModel)
-        {
-            var tokenEmail = await UserManager.GenerateEmailConfirmationTokenAsync(usuarioAplicacaoModel.Id);
-
-            var linkDeCallback = Url.Action(
-                "ConfirmacaoEmail",
-                "Conta",
-                new { usuarioId = usuarioAplicacaoModel.Id, token = tokenEmail },
-                Request.Url.Scheme);
-
-            await UserManager.SendEmailAsync(
-                usuarioAplicacaoModel.Id,
-                "Fórum ByteBank - Confirmação de Email",
-                $"Bem-vido ao fórum ByteBank, cliqque aqui {linkDeCallback} para confirmar seu email!");
         }
 
         public ActionResult Login()
@@ -167,7 +151,7 @@ namespace ByteBank.Forum.Controllers
 
                         return RedirectToAction("Index", "Home");
                     case SignInStatus.LockedOut:
-                        var senhaCorreta = await UserManager.CheckPasswordAsync(usuario, contaLoginViewModel.Password);
+                        bool senhaCorreta = await UserManager.CheckPasswordAsync(usuario, contaLoginViewModel.Password);
 
                         if (senhaCorreta)
                         {
@@ -201,21 +185,7 @@ namespace ByteBank.Forum.Controllers
 
                 if (usuario != null)
                 {
-                    // Gerar o token de reset da senha
-                    var tokenEmail = await UserManager.GeneratePasswordResetTokenAsync(usuario.Id);
-
-                    // Gerar a url para o usuário
-                    var linkDeCallback = Url.Action(
-                        "ConfirmacaoAlteracaoSenha",
-                        "Conta",
-                        new { usuarioId = usuario.Id, token = tokenEmail },
-                        Request.Url.Scheme);
-
-                    // Enviar email
-                    await UserManager.SendEmailAsync(
-                        usuario.Id,
-                        "Fórum ByteBank - Alteração de Senha",
-                        $"Bem-vido ao fórum ByteBank, cliqque aqui {linkDeCallback} para alterar a sua senha!");
+                    await EnviarEmailDeConfirmacaoOuAlteracaoSenhaAsync(usuario, true);
                 }
 
                 return View("EmailAlteracaoSenhaEnviado");
@@ -277,6 +247,37 @@ namespace ByteBank.Forum.Controllers
         {
             ModelState.AddModelError("", "Credenciais inválidas!");
             return View("Login");
+        }
+
+        private async Task EnviarEmailDeConfirmacaoOuAlteracaoSenhaAsync(UsuarioAplicacao usuarioAplicacaoModel, bool ehAlteracaoSenha)
+        {
+            string textoLinkCallBack = "ConfirmacaoEmail";
+            string assuntoEmail = "Fórum ByteBank - Confirmação de Email";
+
+            if (ehAlteracaoSenha)
+            {
+                textoLinkCallBack = "ConfirmacaoAlteracaoSenha";
+                assuntoEmail = "Fórum ByteBank - Alteração de Senha";
+            }
+
+            // Gerar o token de reset da senha
+            var tokenEmail = ehAlteracaoSenha ? await UserManager.GeneratePasswordResetTokenAsync(usuarioAplicacaoModel.Id) :
+                                                await UserManager.GenerateEmailConfirmationTokenAsync(usuarioAplicacaoModel.Id);
+            ;
+
+            // Gerar a url para o usuário
+            var linkDeCallback = Url.Action(
+                textoLinkCallBack,
+                "Conta",
+                new { usuarioId = usuarioAplicacaoModel.Id, token = tokenEmail },
+                Request.Url.Scheme);
+
+            // Enviar email
+            await UserManager.SendEmailAsync(
+                usuarioAplicacaoModel.Id,
+                assuntoEmail,
+                ehAlteracaoSenha ? $"Bem-vido ao fórum ByteBank, cliqque aqui {linkDeCallback} para alterar a sua senha!" :
+                                   $"Bem-vido ao fórum ByteBank, cliqque aqui {linkDeCallback} para confirmar seu email!");
         }
     }
 }
